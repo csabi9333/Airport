@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=utf-8>
+    <title>Repülőtér</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { width: 100%; height: 100% }
+        #caption {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 50%;
+            text-align: left;
+            z-index: 100;
+            display:block;
+            color: yellow;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 90%;
+            text-align: right;
+            z-index: 100;
+            display:block;
+            color: cyan;
+            opacity: 1.0;
+        }
+    </style>
+</head>
+
+<body onload="init()">
+<div id="caption">
+    <br>Hegedűs Csaba</br>
+    <br>LGBGXQ</br>
+    <br>Mérnökinformatikus BSc</br>
+    <br>2017/2018</br>
+</div>
+
+<div id="info">
+    <br>billentyű funkciók:</br>
+    <br>i: szöveg be/ki</br>
+    <br>le/fel/jobbra/balra nyilak: lámpa világítás navigációja</br>
+    <br>A/W/S/D: ember mozgása </br>
+    <br>E: holdfény be/ki</br>
+</div>
+
+<script src="js-r87/three.js"></script>
+<script src="js-r87/TrackballControls.js"></script>
+<script>
+    var caption, info;
+    var WIDTH, HEIGHT, aspectRatio;
+    var renderer=new THREE.WebGLRenderer( {alpha: true}) ;
+    var scene, camera;
+    var controls;
+    var meshLoaded, meshLoaded1, meshLoaded7;
+    var humanLoaded, lab1Mesh, lab2Mesh;
+    var textureLoader = new THREE.TextureLoader();
+    var texture = textureLoader.load( 'assets/fu2.jpg' );
+    var texture3= textureLoader.load( 'assets/beton.jpg' );
+    var texture4= textureLoader.load( 'assets/tegla.jpg' );
+    var texture5=textureLoader.load('assets/hold.jpg');
+    var a=0 , b=0;
+    var holder, holder2, holder3, holder4, holder5;
+    var pLight;
+    var clock = new THREE.Clock();
+
+    function init() {
+
+        HEIGHT = window.innerHeight;
+        WIDTH = window.innerWidth;
+        aspectRatio = WIDTH / HEIGHT;
+
+        renderer = new THREE.WebGLRenderer( { antialias: true } );
+        renderer.setSize( WIDTH, HEIGHT );
+        renderer.setClearColor( 0x202020 );
+        document.body.appendChild( renderer.domElement );
+
+        scene = new THREE.Scene();
+
+        camera = new THREE.PerspectiveCamera( 75, aspectRatio, 0.1, 1000 );
+        camera.position.set( 0, 10, 20 );
+        camera.lookAt( scene.position );
+
+        holder=new THREE.Object3D();
+        holder2=new THREE.Object3D();
+        holder3=new THREE.Object3D();
+        holder4=new THREE.Object3D();
+
+
+        var ambientLight = new THREE.AmbientLight( 0xffffff, 0.5 );
+        scene.add( ambientLight );
+        //Talaj
+        var groundGeometry = new THREE.PlaneGeometry( 80, 80 );
+        var groundMaterial =new THREE.MeshPhongMaterial({side: THREE.DoubleSide});
+        groundMaterial.map = texture;
+        var groundMesh = new THREE.Mesh( groundGeometry, groundMaterial );
+        groundMesh.rotation.x = -1.0 * THREE.Math.degToRad( 90 );
+        groundMesh.castShadow = false;
+        groundMesh.receiveShadow = true;
+        scene.add( groundMesh );
+
+        //Hold
+        var holdGeometry = new THREE.SphereGeometry( 4, 30, 30 );
+        var holdMaterial = new THREE.MeshBasicMaterial();
+        holdMaterial.map=texture5;
+        var holdMesh = new THREE.Mesh( holdGeometry, holdMaterial );
+        holdMesh.position.set(10,30,-20);
+        scene.add( holdMesh );
+
+        //Holdfény
+        pLight = new THREE.PointLight( 0x0000ff, 0.5 );
+        pLight.position.set( 10, 30, -20 );
+        pLight.castShadow=true;
+        scene.add( pLight );
+
+        //Lámpa
+        var lampa1Geometry = new THREE.CylinderGeometry( 0.5, 0.5, 15, 32 );
+        var lampa1Material = new THREE.MeshPhongMaterial();
+        var lampa1Mesh = new THREE.Mesh( lampa1Geometry, lampa1Material );
+        lampa1Mesh.castShadow = false;
+        lampa1Mesh.receiveShadow = true;
+        lampa1Mesh.position.set(-2,7.5,-2);
+        scene.add( lampa1Mesh );
+
+        var lampaGeometry3 = new THREE.BoxGeometry( 0.5, 1, 2 );
+        var lampaMaterial3 = new THREE.MeshPhongMaterial( {color: "black"} );
+        var lampaMesh3 = new THREE.Mesh( lampaGeometry3, lampaMaterial3 );
+        lampaMesh3.position.set(-1,8,0);
+        lampaMesh3.rotation.y = -1.0 * THREE.Math.degToRad( 90 );
+        lampa1Mesh.add( lampaMesh3 );
+        lampaMesh3.castShadow = false;
+        lampaMesh3.receiveShadow = true;
+        scene.add(holder);
+        holder.position.z=2;
+        holder.position.x=-2;
+        //lámpa fénye(reflektor)
+        var sLight = new THREE.SpotLight( "yellow", 1 );
+        sLight.position.set( -1, 8, 0 );
+        sLight.angle = Math.PI / 10;
+        sLight.target = holder;
+        sLight.castShadow = true;
+        lampa1Mesh.add( sLight );
+
+        //Irányítótorony
+        var cylGeometry = new THREE.CylinderGeometry( 1, 3, 20, 32 );
+        var cylMaterial = new THREE.MeshPhongMaterial( );
+        cylMaterial.map=texture3;
+        var cylMesh = new THREE.Mesh( cylGeometry, cylMaterial );
+        cylMesh.receiveShadow=false;
+        cylMesh.castShadow=true;
+        cylMesh.position.set(10,10,5);
+        scene.add( cylMesh );
+        cylMesh.add(holder2);
+
+        var coneGeometry = new THREE.ConeGeometry( 2, 5, 4 );
+        var coneMaterial = new THREE.MeshPhongMaterial({color: 0x000000, shininess: 80, specular: 0x111111, side: THREE.FrontSide, wireframe: false});
+        var coneMesh = new THREE.Mesh( coneGeometry, coneMaterial );
+        coneMesh.position.set(10,20,5);
+        coneMesh.rotation.z = -1.0 * THREE.Math.degToRad( 180 );
+        scene.add( coneMesh );
+
+        var sphere1Geometry = new THREE.SphereGeometry( 3, 4, 4 );
+        var sphere1Material = new THREE.MeshPhongMaterial({transparent: true});
+        sphere1Material.opacity = 0.7;
+        var sphere1Mesh = new THREE.Mesh( sphere1Geometry, sphere1Material );
+        sphere1Mesh.position.set(10,18,5);
+        scene.add( sphere1Mesh );
+
+        //torony gömbje
+        var sphereGeometry = new THREE.SphereGeometry( 1, 30, 30 );
+        var sphereMaterial = new THREE.MeshPhongMaterial( { color: 0x00ff00, wireframe: false } );
+        var sphereMesh = new THREE.Mesh( sphereGeometry, sphereMaterial );
+        sphereMesh.position.set(10,23,5);
+        scene.add( sphereMesh );
+        //torony pereme
+        var geometry = new THREE.TorusGeometry( 3, 1.5, 2, 20 );
+        var material = new THREE.MeshPhongMaterial( { color: 0x6A7175 } );
+        var torus = new THREE.Mesh( geometry, material );
+        torus.position.set(10,15,5);
+        torus.rotation.x = -1.0 * THREE.Math.degToRad( 90 );
+        scene.add( torus );
+
+        //hangár
+        var boxGeometry = new THREE.BoxGeometry( 0.5, 6, 12 );
+        var boxMaterial = new THREE.MeshPhongMaterial();
+        var boxMesh = new THREE.Mesh( boxGeometry, boxMaterial );
+        boxMaterial.map=texture3;
+        boxMesh.position.set(7,3,14);
+        scene.add( boxMesh );
+
+        var boxGeometry2 = new THREE.BoxGeometry( 0.5, 6, 10 );
+        var boxMaterial2 = new THREE.MeshPhongMaterial();
+        var boxMesh2 = new THREE.Mesh( boxGeometry2, boxMaterial2 );
+        boxMaterial2.map=texture3;
+        boxMesh2.position.set(2,3,8);
+        boxMesh2.rotation.y = -1.0 * THREE.Math.degToRad( 90 );
+        scene.add( boxMesh2 );
+
+        var boxGeometry3 = new THREE.BoxGeometry( 0.5, 6, 10 );
+        var boxMaterial3 = new THREE.MeshPhongMaterial();
+        var boxMesh3 = new THREE.Mesh( boxGeometry3, boxMaterial3 );
+        boxMaterial3.map=texture3;
+        boxMesh3.position.set(2,3,20);
+        boxMesh3.rotation.y = -1.0 * THREE.Math.degToRad( 90 );
+        scene.add( boxMesh3 );
+        //köd
+        var particlesGeometry = new THREE.Geometry();
+        var particleCount = 10000;
+        for(  i = 0; i < particleCount; i++ ) {
+            var vertex = new THREE.Vector3();
+            vertex.x = Math.random() * 2000 - 1000;
+            vertex.y = Math.random() * 2000 - 1000;
+            vertex.z = Math.random() * 2000 - 1000;
+            particlesGeometry.vertices.push( vertex );
+        }
+         particlesMaterial = new THREE.PointsMaterial( {size: 2, color: 0xa0a000, sizeAttenuation: true } );
+         particles = new THREE.Points( particlesGeometry, particlesMaterial );
+         scene.add( particles );
+
+        //hangár teteje
+        var Tetogeometry = new THREE.Geometry();
+        Tetogeometry.vertices.push(
+            new THREE.Vector3( -3.0, 6.0, 8.0 ),
+            new THREE.Vector3(  2.5, 12.0, 15.0 ),
+            new THREE.Vector3(  7.0, 6.0, 8.0 ),
+            new THREE.Vector3(  7.0, 6.0, 20.0 ),
+            new THREE.Vector3( -3.0, 6.0, 20.0 )
+        );
+        Tetogeometry.faces.push( new THREE.Face3( 0, 1, 2 ) );
+        Tetogeometry.faces.push( new THREE.Face3( 1, 3, 2 ) );
+        Tetogeometry.faces.push( new THREE.Face3( 4, 3, 1 ) );
+        Tetogeometry.faces.push( new THREE.Face3( 4, 0, 1 ) );
+        Tetogeometry.computeVertexNormals();
+        var Tetomaterial = new THREE.MeshPhongMaterial( { color: "red",side: THREE.DoubleSide} );
+        var poly = new THREE.Mesh( Tetogeometry, Tetomaterial );
+        scene.add( poly );
+
+        //hangár folytatása
+
+        var cyl2Geometry = new THREE.CylinderGeometry( 10, 10, 12, 32 , 1, true, 0,3.15);
+        cyl2Material = new THREE.MeshPhongMaterial( {  side: THREE.DoubleSide} );
+        cyl2Material.map=texture3;
+        cyl2Mesh = new THREE.Mesh( cyl2Geometry, cyl2Material );
+        cyl2Mesh.position.set(-32,0,5);
+        cyl2Mesh.rotation.z=1*Math.PI/2;
+        scene.add( cyl2Mesh );
+
+        var circleGeometry = new THREE.CircleGeometry( 10, 32, 0, Math.PI  );
+        var circleMaterial = new THREE.MeshPhongMaterial( {side: THREE.DoubleSide} );
+        circleMaterial.map=texture3;
+        var circleMesh = new THREE.Mesh( circleGeometry, circleMaterial );
+        circleMesh.rotation.z=-1*Math.PI/2;
+        circleMesh.rotation.x=-1*Math.PI/2;
+        circleMesh.position.y=6;
+        cyl2Mesh.add( circleMesh );
+
+        var box5Geometry = new THREE.BoxGeometry( 10, 10, 2 );
+        var box5Material = new THREE.MeshPhongMaterial();
+        box5Material.map=texture4;
+        var box5Mesh = new THREE.Mesh( box5Geometry, box5Material );
+        box5Mesh.position.set(5,0,11);
+        cyl2Mesh.add( box5Mesh );
+
+        var box6Geometry = new THREE.BoxGeometry( 10, 10, 2 );
+        var box6Material = new THREE.MeshPhongMaterial();
+        box6Material.map=texture4;
+        var box6Mesh = new THREE.Mesh( box6Geometry, box6Material );
+        box6Mesh.position.set(5,0,-11);
+        cyl2Mesh.add( box6Mesh );
+
+        //Blender modellek
+        var manager = new THREE.LoadingManager();
+        var loader = new THREE.JSONLoader( manager);
+        holder4.position.y=5;
+        holder4.position.z=2.2;
+        loader.load( 'assets/models/helikopter3.json', function ( geometry, mat ) {
+            meshLoaded = new THREE.Mesh( geometry, mat[0] );
+            meshLoaded.scale.set( 0.5, 0.5, 0.5 );
+            meshLoaded.receiveShadow=false;
+            meshLoaded.castShadow=true;
+            scene.add( meshLoaded );
+            meshLoaded.add(holder4);
+        });
+
+        var box7Geometry = new THREE.BoxGeometry( 5, 0.1, 0.2 );
+        var box7Material = new THREE.MeshBasicMaterial({color:0x9C948E});
+        var box7Mesh = new THREE.Mesh( box7Geometry, box7Material );
+
+        holder4.add(box7Mesh);
+        var box8Geometry = new THREE.BoxGeometry( 5, 0.1, 0.2 );
+        var box8Material = new THREE.MeshBasicMaterial({color:0x9C948E});
+        var box8Mesh = new THREE.Mesh( box8Geometry, box8Material );
+        box8Mesh.rotation.y=Math.PI/2;
+        holder4.add(box8Mesh);
+        holder5=new THREE.Object3D();
+
+        loader.load( 'assets/models/repulo.json', function ( geometry ) {
+            var material = new THREE.MeshPhongMaterial( { color: 0x0000ff, wireframe: false, side: THREE.DoubleSide } );
+            meshLoaded1 = new THREE.Mesh( geometry, material );
+            meshLoaded1.scale.set( 1, 1, 1 );
+            meshLoaded1.position.set(2,10,5);
+            meshLoaded1.receiveShadow=true;
+            meshLoaded1.castShadow=true;
+            meshLoaded1.rotation.y=2;
+            holder3.position.set(2,20,9);
+            scene.add(holder3);
+            holder3.add(meshLoaded1);
+            holder2.add( meshLoaded1 );
+        });
+        loader.load('assets/models/human.json', function (geometry) {
+            var material = new THREE.MeshPhongMaterial({color: 0x0000ff, wireframe: false, side: THREE.DoubleSide});
+            humanLoaded = new THREE.Mesh(geometry, material);
+            humanLoaded.scale.set(0.2, 0.2, 0.2);
+            humanLoaded.position.set(0,0.3,0);
+            humanLoaded.castShadow = true;
+            humanLoaded.receiveShadow = false;
+            holder5.add(humanLoaded);
+            scene.add(holder5);
+        });
+
+        //lábak:
+        var lab1Geometry = new THREE.BoxGeometry( 0.1, 1, 0.1 );
+        var lab1Material = new THREE.MeshBasicMaterial( { color: 0x00ff00, wireframe: false } );
+        lab1Mesh = new THREE.Mesh( lab1Geometry, lab1Material );
+        lab1Mesh.castShadow = true;
+        lab1Mesh.receiveShadow = false;
+        lab1Mesh.position.set(0.1,-0.5,0);
+        holder5.add( lab1Mesh );
+
+        var lab2Geometry = new THREE.BoxGeometry( 0.1, 1, 0.1 );
+        var lab2Material = new THREE.MeshBasicMaterial( { color: 0x00ff00, wireframe: false } );
+        lab2Mesh = new THREE.Mesh( lab2Geometry, lab2Material );
+        lab2Mesh.castShadow = true;
+        lab2Mesh.receiveShadow = false;
+        lab2Mesh.position.z=0;
+        lab2Mesh.position.x=-0.1;
+        lab2Mesh.position.y=-0.5;
+        holder5.add( lab2Mesh );
+
+        holder5.position.y=1;
+
+        //hangárban levő repülők
+        loader.load('assets/models/repulo.json', function (geometry) {
+            var material = new THREE.MeshBasicMaterial({color: 0x00ffff});
+            meshLoaded2 = new THREE.Mesh(geometry, material);
+            meshLoaded2.scale.set(0.5, 0.5, 0.5);
+            meshLoaded2.position.set(0, 0, 10);
+            meshLoaded2.rotation.y = -1 * (Math.PI / 2);
+            scene.add(meshLoaded2);
+            });
+        loader.load('assets/models/repulo.json', function (geometry) {
+
+            var material = new THREE.MeshPhongMaterial({color: 0x0000ff, wireframe: false, side: THREE.DoubleSide});
+            meshLoaded3 = new THREE.Mesh(geometry, material);
+            meshLoaded3.scale.set(0.5, 0.5, 0.5);
+            meshLoaded3.position.set(0, 0, 13);
+            meshLoaded3.rotation.y = -1 * (Math.PI / 2);
+            scene.add(meshLoaded3);
+        });
+
+
+        loader.load('assets/models/repulo.json', function (geometry) {
+
+            var material = new THREE.MeshPhongMaterial({color: 0xff00ff, wireframe: false, side: THREE.DoubleSide});
+            meshLoaded4 = new THREE.Mesh(geometry, material);
+            meshLoaded4.scale.set(0.5, 0.5, 0.5);
+            meshLoaded4.position.set(0, 0, 16);
+            meshLoaded4.rotation.y = -1 * (Math.PI / 2);
+            scene.add(meshLoaded4);
+        });
+        loader.load('assets/models/repulo.json', function (geometry) {
+
+            var material = new THREE.MeshPhongMaterial({color: 0x0000ff, wireframe: false, side: THREE.DoubleSide});
+            meshLoaded7 = new THREE.Mesh(geometry, material);
+            meshLoaded7.scale.set(0.5, 0.5, 0.5);
+            meshLoaded7.position.set(-18, 0, -15);
+            meshLoaded7.castShadow = true;
+            meshLoaded7.receiveShadow = false;
+            scene.add(meshLoaded7);
+
+        });
+
+        window.addEventListener( 'resize', handleWindowResize, false );
+        window.addEventListener( 'keydown', handleKeyDown );
+        window.addEventListener( 'keypress', handleKeyPress );
+        window.addEventListener( 'keydown', humanKeyPress );
+        window.addEventListener( 'keydown', holdfenykapcsolas );
+        controls = new THREE.TrackballControls( camera, renderer.domElement );
+        controls.rotateSpeed = 5.0;
+        controls.panSpeed = 1.0;
+        caption2=document.getElementById("caption").innerHTML;
+        info2=document.getElementById("info").innerHTML;
+
+        render();
+    }
+    function humanKeyPress(event) {
+        //Ember mozgását reprezentáló esemény
+        if(event.keyCode=='65' ) {
+            holder5.rotation.y=Math.PI/2;
+            holder5.position.x -= 0.1;
+            lab1Mesh.rotation.x+=0.1;
+            lab2Mesh.rotation.x-=0.1;
+            if(lab1Mesh.rotation.x>=0.4)
+            {
+                lab1Mesh.rotation.x=0;
+                lab2Mesh.rotation.x=0;
+            }
+            b=1;
+        }
+        if(event.keyCode=='68') {
+            if (b == 1)
+            {
+                holder5.rotation.y=0.5*Math.PI;
+            }
+            lab1Mesh.rotation.x+=0.1;
+            lab2Mesh.rotation.x-=0.1;
+            if(lab1Mesh.rotation.x>=0.4)
+            {
+                lab1Mesh.rotation.x=0;
+                lab2Mesh.rotation.x=0;
+            }
+                holder5.position.x += 0.1;
+        }
+        if(event.keyCode=='83'){
+            if (b == 1)
+            {
+                holder5.rotation.y=-1*Math.PI;
+            }
+            lab1Mesh.rotation.x+=0.1;
+            lab2Mesh.rotation.x-=0.1;
+            if(lab1Mesh.rotation.x>=0.4)
+            {
+                lab1Mesh.rotation.x=0;
+                lab2Mesh.rotation.x=0;
+            }
+            holder5.position.z+=0.1;
+        }
+        if(event.keyCode=='87') {
+            if (b == 1) {
+                holder5.rotation.y = Math.PI;
+            }
+            lab1Mesh.rotation.x+=0.1;
+            lab2Mesh.rotation.x-=0.1;
+            if(lab1Mesh.rotation.x>=0.4)
+            {
+                lab1Mesh.rotation.x=0;
+                lab2Mesh.rotation.x=0;
+            }
+            holder5.position.z -= 0.1;
+        }
+    }
+
+    function holdfenykapcsolas(event){
+        if (event.keyCode == '69' ) {
+            if (pLight.visible === true) {
+                pLight.visible = false;
+            }
+            else{
+                pLight.visible = true;
+            }
+        }
+    }
+
+    function handleWindowResize() {
+
+        HEIGHT = window.innerHeight;
+        WIDTH = window.innerWidth;
+        console.log( 'WIDTH=' + WIDTH + '; HEIGHT=' + HEIGHT );
+        renderer.setSize( WIDTH, HEIGHT );
+        aspectRatio = WIDTH / HEIGHT;
+        camera.aspect = aspectRatio;
+        camera.updateProjectionMatrix();
+    }
+    //szöveg ki és bekapcsolásának eseménykezelése.
+    function handleKeyDown( event ) {
+        var msg;
+        msg=" ";
+
+        if((event.keyCode=='73') && (a==0)){
+            a=1;
+            caption = document.getElementById("caption").innerHTML = msg;
+            info = document.getElementById("info").innerHTML = msg;}
+        else if(event.keyCode=='73' && a==1){
+            a=0;
+            caption = document.getElementById("caption").innerHTML = caption2;
+            info = document.getElementById("info").innerHTML = info2;}
+    }
+    function handleKeyPress(event) {
+        //Reflektor fény irányítása
+    if(event.keyCode=='39' && holder.position.x<=0)
+        holder.position.x+=0.1;
+    if(event.keyCode=='37')
+        holder.position.x-=0.1;
+    if(event.keyCode=='40')
+        holder.position.z+=0.1;
+    if(event.keyCode=='38')
+            holder.position.z-=0.1;
+    }
+    var render = function () {
+        var delta = clock.getDelta();
+
+        requestAnimationFrame( render );
+
+        renderer.shadowMap.enabled = true;
+        particles.rotation.x += 0.001;
+        particles.rotation.y -= 0.001;
+        // repülő torony körüli mozgása
+        holder2.rotation.y+=0.04;
+        meshLoaded1.rotation.y+=0.0001;
+
+        //Helikopter felszállás, mozgás
+        if(meshLoaded.position.y<=30)
+            meshLoaded.position.y+=0.1;
+        if(meshLoaded.position.y>=30)
+            meshLoaded.position.z+=0.4;
+        if(meshLoaded.position.z>=20)
+            meshLoaded.position.z=-20;
+
+        meshLoaded7.position.z+=0.2;
+        meshLoaded7.position.y+=0.1;
+        if(meshLoaded7.position.z>=20)
+        {
+            meshLoaded7.position.z=-15;
+            meshLoaded7.position.y=0;}
+        //Helikoper propellere
+        holder4.rotation.y+=0.5;
+
+        controls.update(delta);
+        renderer.render( scene, camera );
+    };
+</script>
+</body>
+</html>
